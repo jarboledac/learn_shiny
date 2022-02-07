@@ -1,0 +1,537 @@
+---
+title: "Sondeo violencia intrafamiliar"
+author: "Sistema de información para la seguridad y convivencia (SISC) - Instituto de estudios políticos UdeA"
+output: html_document
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r echo=FALSE, include=FALSE,, message=FALSE}
+library('readxl')
+library('dplyr')
+library('janitor')
+library('ggplot2')
+library(scales)
+library(tidyr)
+library(plotly)
+library(knitr)
+library(tidyverse)
+
+source("/Users/jeferson/Documents/sisc/gestion_conocimiento/sondeo_VIF/funciones.R")
+
+data <- read_excel('/Users/jeferson/Documents/sisc/gestion_conocimiento/sondeo_vif/sondeo_de_opinion.xlsx') %>% clean_names() %>% 
+  select(-c('marca_temporal'))
+
+n_personas <- dim(data)[1]
+
+identidad <- coun_porc(data, data$usted_es_marque_uno, "Identidad")
+
+```
+
+Muestra: **`r dim(data)[1]`**  
+
+```{r echo=FALSE, include=TRUE, message=FALSE}
+
+bar_sisc(identidad, identidad$Identidad, identidad$Casos, title_name = "Distribución por identidad de género",
+        x_title =  "Identidades", y_title = "Número de casos", legend =  "Identidades")
+
+```
+```{r echo=FALSE, include=TRUE}
+identidad_table <- identidad %>% 
+  kable()
+identidad_table
+```
+
+```{r echo=FALSE, include=FALSE}
+orientacion <- coun_porc(data, data$usted_se_considera_marque_uno, "Orientación")
+```
+
+```{r echo=FALSE, include=TRUE}
+bar_sisc(orientacion, x_val = orientacion$Orientación, y_val = orientacion$Casos, title_name = "Distribución por orientación sexual", x_title =  "Orientación", y_title = "Número de casos", legend =  "Orientación")
+
+```
+
+```{r echo=FALSE, include=TRUE}
+orientacion_table <- orientacion %>% 
+  kable()
+orientacion_table
+```
+
+```{r echo=FALSE, include=FALSE}
+comuna <- coun_porc(data, data$comuna_o_corregimiento_en_el_que_reside, "Comuna")
+edad <- coun_porc(data, data$edad, "Edad")
+
+data <- data %>% mutate(tiene_alguna_discapacidad =replace_na(tiene_alguna_discapacidad,"- Sin dato"))
+discapacidad <- coun_porc(data, data$tiene_alguna_discapacidad, "Discapacidad")
+
+
+
+data <- data %>% mutate(hace_parte_de_alguna_categoria_de_reconocimiento_etnico_racial_marque_uno =replace_na(hace_parte_de_alguna_categoria_de_reconocimiento_etnico_racial_marque_uno,"- Sin dato"))
+
+etnia <- coun_porc(data, data$hace_parte_de_alguna_categoria_de_reconocimiento_etnico_racial_marque_uno, "Etnia")
+```
+
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+bar_sisc(comuna, x_val = comuna$Comuna, y_val = comuna$Casos, title_name = "Comuna de residencia",
+         x_title = " ", y_title = "Número de casos", paleta = FALSE, rot_angel = 90)
+
+```
+```{r echo=FALSE, include=TRUE}
+
+comuna_table <- comuna %>% 
+  kable()
+comuna_table
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+bar_sisc(edad, x_val = edad$Edad, y_val = edad$Casos, paleta = FALSE, title_name = "Edad",
+         x_title = "Rangos etarios", y_title = "Número de casos", order_bar = FALSE)
+
+```
+```{r echo=FALSE, include=TRUE}
+edad_table <- edad %>% 
+  kable()
+edad_table
+```
+
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+bar_sisc(discapacidad, discapacidad$Discapacidad, discapacidad$Casos, title_name = "Discapacidad",
+         x_title = " ", y_title = "Número de casos", legend = "Discapacidad")
+
+```
+```{r echo=FALSE, include=TRUE}
+discapacidad_table <- discapacidad %>% 
+  kable()
+discapacidad_table
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 12}
+
+bar_sisc(etnia, x_val = etnia$Etnia, y_val = etnia$Casos, title_name = "Etnia", x_title = " ", y_title = "Número de casos", legend = "Etnia")
+
+```
+```{r echo=FALSE, include=TRUE}
+etnia_table <- etnia %>% 
+  kable()
+etnia_table
+```
+
+
+```{r echo=FALSE, include=TRUE}
+
+violencia <- coun_porc(data, data$en_algun_momento_ha_sido_victima_de_violencia_por_parte_de_puede_marcar_varias_opciones, "Violencia")
+
+split_opc <- separate(violencia, col = Violencia,
+                     sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+mas_uno <- colSums(!is.na(split_opc))[2]
+
+
+data_sep <- separate(data = data, col = en_algun_momento_ha_sido_victima_de_violencia_por_parte_de_puede_marcar_varias_opciones,
+                     sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+agresores <- data.frame(table(sapply(c(data_sep$uno, data_sep$dos, data_sep$tres,  data_sep$cuatro,  data_sep$cinco, data_sep$seis), make_clean_names, USE.NAMES = F))) %>% 
+  arrange(desc(Freq)) 
+
+agresores <- agresores[-c(1,2),] #Se muede modificar de acuerdo al ninguno
+
+row.names(agresores) <- 1:nrow(agresores)
+
+agresores <- agresores %>% 
+  ungroup() %>% 
+  mutate(per =paste(round(Freq/sum(Freq)*100), "%"))
+
+colnames(agresores) <- c("Agresores", "Casos", "Porcentaje")
+
+no_ag <- data.frame(
+  "respuesta" = c('Sí',"No"),
+  "Casos"= c(sum(violencia[violencia$Violencia != "- Ninguno",]$Casos) ,sum(violencia[violencia$Violencia == "- Ninguno",]$Casos))
+)
+
+```
+
+```{r echo = FALSE, include=FALSE}
+no_viol <- data[data$en_algun_momento_ha_sido_victima_de_violencia_por_parte_de_puede_marcar_varias_opciones == "- Ninguno",]
+
+identidad_no <- coun_porc(no_viol, no_viol$usted_es_marque_uno, "Identidad")
+
+orientacion_no <- coun_porc(no_viol, no_viol$usted_se_considera_marque_uno, "Orientación")
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+bar_sisc(no_ag, x_val = no_ag$respuesta, y_val = no_ag$Casos, paleta = FALSE, title_name = "Víctimas de VIF",
+         y_title = "Número de Casos", x_title = " ")
+
+```
+En cuanto a las personas que respondieron que **no han sido víctimas** tenemos:
+
+```{r echo=FALSE, include=TRUE, message=FALSE}
+
+bar_sisc(identidad_no, identidad_no$Identidad, identidad_no$Casos, title_name = "Distribución por identidad de género - No víctimas",
+        x_title =  "Identidades", y_title = "Número de casos", legend =  "Identidades")
+
+```
+```{r echo=FALSE, include=TRUE}
+identidad_table_no <- identidad_no %>% 
+  kable()
+identidad_table_no
+```
+```{r echo=FALSE, include=TRUE}
+bar_sisc(orientacion_no, x_val = orientacion_no$Orientación, y_val = orientacion_no$Casos, title_name = "Distribución por orientación sexual - No víctimas", x_title =  "Orientación", y_title = "Número de casos", legend =  "Orientación")
+
+```
+
+```{r echo=FALSE, include=TRUE}
+orientacion_table_no <- orientacion_no %>% 
+  kable()
+orientacion_table_no
+```
+Ahora bien, para aquellos que **si han sido víctimas** tenemos los siguientes resultados:
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+bar_sisc(agresores, x_val = agresores$Agresores, y_val = agresores$Casos, paleta = FALSE, title_name = "Victímas de VIF según relación o parentesco con el agresor",
+         y_title = "Número de Casos", x_title = " ")
+
+```
+```{r echo=FALSE, include=TRUE}
+agresores2 <- agresores %>% 
+  kable()
+
+agresores2
+```
+```{r echo=FALSE, include=FALSE}
+denunciaron <- data_sep %>% 
+       subset(!(uno %in% c("- Ninguno","- Ninguno," )| dos  %in%  c("Ninguno","Ninguno,") | tres  %in%  c("Ninguno","Ninguno,")   | 
+                  cuatro  %in%  c("Ninguno","Ninguno,")|cinco  %in%  c("Ninguno","Ninguno,")|
+                  seis  %in%  c("Ninguno","Ninguno,"))) 
+
+denunc_num <- coun_porc(denunciaron, denunciaron$denuncio_dicha_violencia, "Denunció")
+
+
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+ggplot(data = denunc_num, aes(x = "", y = denunc_num$Casos, fill = fct_inorder(denunc_num$Denunció))) +
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start = 0)+
+  scale_fill_manual(values =
+                      c('#191B4F','#1CA4C9','#511C71','#515151','#F9A61F','#178D4B','#AE3E92','#F77F11')) +
+  geom_text(aes(x = 0.9, y = c(74,26), label =denunc_num$Porcentaje), color = "white")+
+  guides(fill = guide_legend(title = "Denunciaron"))+
+  ggtitle("Víctimas VIF - denuncias")+
+  theme(plot.title = element_text(hjust = 5, vjust = 1.5,color = "black"))+
+  theme_void()
+
+
+
+```
+
+```{r echo=FALSE, include=FALSE, fig.width= 10}
+bar_sisc(denunc_num, x_val = denunc_num$Denunció, y_val = denunc_num$Casos, title_name = "Víctimas VIF - denuncias", legend = "Denunciaron", paleta = TRUE, y_title = "Número de Casos", x_title = " ")
+
+```
+
+
+```{r echo=FALSE, include=TRUE}
+denunc_table <- denunc_num %>% 
+  kable()
+denunc_table
+```
+```{r echo=FALSE, include=TRUE}
+
+resp <- coun_porc(denunciaron[denunciaron$denuncio_dicha_violencia == '- No',],denunciaron[denunciaron$denuncio_dicha_violencia == '- No',]$si_la_respuesta_a_la_pregunta_anterior_fue_no_cual_fue_la_razon_por_la_que_no_denuncio_puede_marcar_varias_opciones, "Respuesta")
+
+
+data_sep2 <- separate(data = denunciaron[denunciaron$denuncio_dicha_violencia == '- No',], col = si_la_respuesta_a_la_pregunta_anterior_fue_no_cual_fue_la_razon_por_la_que_no_denuncio_puede_marcar_varias_opciones,
+                     sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+# razones por las que no denunció
+motivo <- data.frame(table(sapply(c(data_sep2$uno, data_sep2$dos, data_sep2$tres,  data_sep2$cuatro,  data_sep2$cinco,  data_sep2$seis), make_clean_names, USE.NAMES = F))) %>% 
+  arrange(desc(Freq)) %>% 
+  ungroup() %>% 
+  mutate(per = paste(round(Freq*100/272), "%")) 
+motivo <- motivo[-c(1),] #Se muede modificar de acuerdo al ninguno
+row.names(motivo) <- 1:nrow(motivo)
+
+for(x in 1:12){
+motivo$Var1 = str_replace(motivo$Var1, "_", " ")
+}
+
+colnames(motivo) <- c("Razones para no denunciar", "Casos", "Porcentaje")
+
+motivo2 <- motivo %>% 
+  kable()
+
+motivo2
+
+```
+
+```{r echo=FALSE, include=FALSE}
+no_den_identidad <- data_sep2 %>% 
+  group_by(uno, dos, tres, cuatro, cinco, seis, usted_es_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos), tres = if_else(is.na(tres), "", tres),
+         cuatro = if_else(is.na(cuatro), "", cuatro), cinco = if_else(is.na(cinco), "", cinco),
+         seis = if_else(is.na(seis), "", seis), uno = if_else(is.na(uno), "- Sin dato", uno)) %>% 
+  unite(union, c(uno, dos, tres, cuatro, cinco, seis), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Identidad = usted_es_marque_uno, `Razones para no denunciar`  = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+no_den_orientacion <- data_sep2 %>% 
+  group_by(uno, dos, tres, cuatro, cinco, seis, usted_se_considera_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos), tres = if_else(is.na(tres), "", tres),
+         cuatro = if_else(is.na(cuatro), "", cuatro), cinco = if_else(is.na(cinco), "", cinco),
+         seis = if_else(is.na(seis), "", seis), uno = if_else(is.na(uno), "- Sin dato", uno)) %>% 
+  unite(union, c(uno, dos, tres, cuatro, cinco, seis), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Orientacion = usted_se_considera_marque_uno, `Razones para no denunciar` = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+```
+
+Las siguientes son las razones por las cuales no denunciaron según la **identidad de género** de la víctima:
+```{r echo=FALSE, include=TRUE}
+
+no_den_identidad_table <- no_den_identidad %>% 
+  kable()
+no_den_identidad_table
+```
+
+Las siguientes son las razones por las cuales no denunciaron según la **orientación sexual** de la víctima:
+
+```{r echo=FALSE, include=TRUE}
+
+no_den_orientacion_table <- no_den_orientacion %>% 
+  kable()
+no_den_orientacion_table
+```
+
+```{r echo=FALSE, include=FALSE}
+
+identidad2 <- denunciaron %>% 
+  group_by(usted_es_marque_uno, denuncio_dicha_violencia) %>% 
+  count() %>% 
+  mutate(per = paste(round(n*100/229), "%"))
+
+orientacion2 <- denunciaron %>% 
+  group_by(usted_se_considera_marque_uno, denuncio_dicha_violencia) %>% 
+  count() %>% 
+  mutate(per = paste(round(n*100/229), "%"))
+colnames(identidad2)<- c("Identidad","Denunció","Casos" ,"Porcentaje")
+
+```
+
+```{r echo=FALSE, include=TRUE}
+bar_cat_sisc(identidad2, x_val = identidad2$Identidad, y_val = identidad2$Casos, category = identidad2$Denunció, title_name = "Víctimas VIF - denuncias según identiddad de género", x_title = "Identidades", y_title = "Número de casos", legend = "Denunció")
+
+```
+
+
+```{r echo=FALSE, include=TRUE}
+
+identidad2_table <- identidad2 %>% 
+  kable()
+identidad2_table
+```
+```{r echo=FALSE, include=TRUE}
+
+colnames(orientacion2)<- c("Orientación","Denunció","Casos" ,"Porcentaje")
+```
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+bar_cat_sisc(orientacion2, x_val = orientacion2$Orientación, y_val = orientacion2$Casos, category = orientacion2$Denunció, title_name = "Víctimas VIF - denuncias según orientación sexual", x_title = "Orientación", y_title = "Número de casos", legend = "Denunció")
+
+```
+
+```{r echo=FALSE, include=TRUE}
+orientacion2_table <- orientacion2 %>% 
+  kable()
+orientacion2_table
+```
+
+
+
+```{r echo=FALSE, include=FALSE}
+resp_si <- denunciaron[denunciaron$denuncio_dicha_violencia == '- Sí',] %>% 
+  group_by(si_la_respuesta_fue_si_a_que_entidad_mecanismo_o_grupo_acudio_puede_marcar_varias_opciones) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+
+data_sep3 <- separate(data = denunciaron[denunciaron$denuncio_dicha_violencia == '- Sí',], col = si_la_respuesta_fue_si_a_que_entidad_mecanismo_o_grupo_acudio_puede_marcar_varias_opciones,
+                      sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+
+mas_entidad <- colSums(!is.na(data_sep3))[2]
+entidad <- data.frame(table(sapply(c(data_sep3$uno, data_sep3$dos, data_sep3$tres,  data_sep3$cuatro,  data_sep3$cinco, data_sep3$seis), make_clean_names, USE.NAMES = F))) %>% 
+  arrange(desc(Freq)) %>% 
+  mutate(per = paste(round(Freq*100/96), "%"))
+  
+entidad <- entidad[-c(1),] #Se muede modificar de acuerdo al ninguno
+row.names(entidad) <- 1:nrow(entidad)
+
+for(x in 1:6){entidad$Var1 = str_replace(entidad$Var1, "_", " ")}
+
+
+colnames(entidad)<- c("Entidad", "Casos", "Porcentaje")
+
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 15, fig.height=10}
+bar_sisc(entidad, x_val = entidad$Entidad, y_val = entidad$Casos, title_name = "Instancia a la que acudió", x_title = " ", y_title = "Número de casos", legend = "Entidad")
+
+```
+
+Del total de personas que acudieron a una entidad, **`r sum(!is.na(data_sep3$dos))`**  buscaron ayuda en más de una de ellas.
+
+```{r echo=FALSE, include=TRUE}
+entidad_table <- entidad %>% 
+  kable()
+entidad_table
+```
+
+```{r echo=FALSE, include=FALSE}
+data_sep4 <- separate(data = denunciaron[denunciaron$denuncio_dicha_violencia == '- Sí',], col = como_califica_su_experiencia_en_caso_de_haber_denunciando_puede_marcar_varias_opciones,
+                      sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+experiencia_ent <- data.frame(table(sapply(c(data_sep4$uno, data_sep4$dos, data_sep4$tres,  data_sep4$cuatro,  data_sep4$cinco, data_sep4$seis), make_clean_names, USE.NAMES = F))) %>% 
+  arrange(desc(Freq)) %>% 
+  mutate(per = paste(round(Freq*100/62), "%"))
+experiencia_ent <- experiencia_ent[-c(1),] #Se muede modificar de acuerdo al ninguno
+row.names(experiencia_ent) <- 1:nrow(experiencia_ent)
+colnames(experiencia_ent)<- c("Experiencia entidad", "Casos", "Porcentaje")
+
+for(x in 1:11){
+experiencia_ent$`Experiencia entidad` = str_replace(experiencia_ent$`Experiencia entidad`, "_", " ")
+}
+
+
+experiencia_identidad <- data_sep4 %>% 
+  group_by(uno, dos, usted_es_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos)) %>% 
+  unite(union, c(uno, dos), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Identidad = usted_es_marque_uno, Experiencia = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+experiencia_orientacion <- data_sep4 %>% 
+  group_by(uno, dos, usted_se_considera_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos)) %>% 
+  unite(union, c(uno, dos), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Orientacion = usted_se_considera_marque_uno, Experiencia = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+```
+
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+bar_sisc(experiencia_ent, x_val = experiencia_ent$`Experiencia entidad`, y_val = experiencia_ent$Casos, title_name = "Experiencia en la entidad", x_title = "Experiencia", y_title = "Número de casos", legend = "Experiencia en la entidad", remove_x = TRUE)
+```
+
+```{r echo=FALSE, include=TRUE}
+experiencia_table <- experiencia_ent %>% 
+  kable()
+experiencia_table
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+bar_cat_sisc(experiencia_identidad, x_val = experiencia_identidad$Experiencia, y_val = experiencia_identidad$Casos, category = experiencia_identidad$Identidad, title_name = "Experiencia en la entidad - Identidad de género", x_title = "", y_title = "Número de casos", legend = "Identidad", mov_y = -0.6, reverse_bar = TRUE, remove_x = TRUE)
+```
+
+```{r echo=FALSE, include=TRUE}
+experiencia_identidad_table <- experiencia_identidad %>% 
+  kable()
+experiencia_identidad_table
+```
+```{r echo=FALSE, include=TRUE, fig.width= 15}
+
+bar_cat_sisc(experiencia_orientacion, x_val = experiencia_orientacion$Experiencia, y_val = experiencia_orientacion$Casos, category = experiencia_orientacion$Orientacion, title_name = "Experiencia en la entidad - Orientación sexual", x_title = "", y_title = "Número de casos", legend = "Identidad", reverse_bar = FALSE, mov_y = 10, remove_x = TRUE, contg = TRUE)
+```
+```{r echo=FALSE, include=TRUE}
+experiencia_orientacion_table <- experiencia_orientacion %>% 
+  kable()
+experiencia_orientacion_table
+
+```
+
+```{r echo=FALSE, include=FALSE}
+data_sep5 <- separate(data = denunciaron[denunciaron$denuncio_dicha_violencia == '- Sí',], col = como_calificaria_la_atencion_recibida_en_caso_de_haber_denunciado_puede_marcar_varias_opciones,
+                      sep = ' - ', into = c('uno','dos','tres','cuatro','cinco','seis'))
+
+atencion_rec <- data.frame(table(sapply(c(data_sep5$uno, data_sep5$dos, data_sep5$tres,  data_sep5$cuatro,  data_sep5$cinco, data_sep5$seis), make_clean_names, USE.NAMES = F))) %>% 
+  arrange(desc(Freq)) %>% 
+  mutate(per = paste(round(Freq*100/94), "%"))
+
+atencion_rec <- atencion_rec[-c(1),] #Se muede modificar de acuerdo al ninguno
+row.names(atencion_rec) <- 1:nrow(atencion_rec)
+
+colnames(atencion_rec)<- c("Atencion entidad", "Casos", "Porcentaje")
+for(x in 1:11){
+atencion_rec$`Atencion entidad` = str_replace(atencion_rec$`Atencion entidad`, "_", " ")
+}
+
+atencion_identidad <- data_sep5 %>% 
+  group_by(uno, dos, tres, cuatro, usted_es_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos),tres = if_else(is.na(tres), "", tres),
+         cuatro = if_else(is.na(cuatro), "", cuatro)) %>% 
+  unite(union, c(uno, dos, tres, cuatro), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Identidad = usted_es_marque_uno, Atencion = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+atencion_orientacion <- data_sep5 %>% 
+  group_by(uno, dos,tres,cuatro, usted_se_considera_marque_uno) %>% 
+  count() %>%
+  mutate(dos = if_else(is.na(dos), "", dos),tres = if_else(is.na(tres), "", tres),
+         cuatro = if_else(is.na(cuatro), "", cuatro),uno = if_else(is.na(uno), "- Sin dato", uno)) %>% 
+  unite(union, c(uno, dos, tres, cuatro), sep = " ", remove = TRUE) %>% 
+  rename(Casos =n, Orientacion = usted_se_considera_marque_uno, Atencion = union) %>% 
+  ungroup() %>% 
+  mutate( Porcentaje = paste(round(Casos*100/sum(Casos)),'%'))
+
+```
+```{r echo=FALSE, include=TRUE, fig.width= 13}
+bar_sisc(atencion_rec, x_val = atencion_rec$`Atencion entidad`, y_val = atencion_rec$Casos, title_name = "Valoración de la atención recibida", x_title = "Atención", y_title = "Número de casos", legend = "Atención entidad", remove_x = TRUE)
+```
+```{r echo=FALSE, include=TRUE}
+atencion_table <- atencion_rec %>% 
+  kable()
+atencion_table
+```
+
+```{r echo=FALSE, include=TRUE, fig.width= 10}
+
+bar_cat_sisc(atencion_identidad, x_val = atencion_identidad$Atencion, y_val = atencion_identidad$Casos, category = atencion_identidad$Identidad, title_name = "Atención en la entidad - Identidad de género", x_title = "", y_title = "Número de casos", legend = "Identidad", mov_y = -0.6, reverse_bar = TRUE, remove_x = TRUE)
+```
+
+```{r echo=FALSE, include=TRUE}
+atencion_identidad_table <- atencion_identidad %>% 
+  kable()
+atencion_identidad_table
+```
+
+
+```{r echo=FALSE, include=TRUE, fig.width= 15}
+
+bar_cat_sisc(atencion_orientacion, x_val = atencion_orientacion$Atencion, y_val = atencion_orientacion$Casos, category = atencion_orientacion$Orientacion, title_name = "Atención en la entidad - Orientación sexual", x_title = "", y_title = "Número de casos", legend = "Orientación", reverse_bar = FALSE, mov_y = 10, remove_x = TRUE, contg = TRUE)
+```
+```{r echo=FALSE, include=TRUE}
+atencion_orientacion_table <- atencion_orientacion %>% 
+  kable()
+atencion_orientacion_table
+
+```
+
