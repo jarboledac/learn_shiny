@@ -65,10 +65,28 @@ library(shiny)
 # output$head <- renderTable({ head(data(), input$n)
 # }) }
 ui <- fluidPage(
-  fileInput("upload","Archivo",buttonLabel = "Upload...", multiple = TRUE, accept = c(".csv", ".tsv")),
+  mainPanel(img(src = "logo2.png", width = 1300),height = 140, width = 400),
+  titlePanel(h1("Informe semanal", align = "center")),
+  fluidRow(column(4,br(), offset = 0),column(4,
+                  fileInput("upload","Archivos planos",buttonLabel = "Upload...",
+                            multiple = TRUE, accept = c(".csv", ".tsv"), width = 600),
+
+  )),
   tableOutput("files"),
-  downloadButton("report", "Generate report")
+  fluidRow(column(4,br()),
+           column(2,
+                  dateInput("date1", label = h3("Fecha uno"), value = "2022-01-01"),
+                  hr()),
+           column(2,
+                  dateInput("date2", label = h3("Fecha dos"), value = "2022-01-01"),
+                  hr())),
+  fluidRow(column(4,br()),
+           column(4,
+                  downloadButton("report", "Generate report"))),
+  verbatimTextOutput("fecha1"),
+  verbatimTextOutput("fecha2")
 )
+
 server <- function(input, output, session){
   data <- reactive({
     req(input$upload)
@@ -91,7 +109,9 @@ server <- function(input, output, session){
       rmarkdown::render("sondeo_vif_opt.Rmd", output_file = file,
                         #params = params,
                         envir = new.env(parent = globalenv())
-      ) }
-  ) }
+      ) })
+  #output$fecha1 <- renderPrint(input$date1)
+  #output$fecha2 <- renderPrint(input$date2)
+  }
 
 shinyApp(ui, server)
