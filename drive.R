@@ -1,5 +1,6 @@
 library(googledrive)
 
+path <- "../semanal-341319-e47dd898e82e.json"
 
 drive_auth(
   email = "drivebackup.sic@gmail.com",

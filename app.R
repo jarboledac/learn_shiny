@@ -1,5 +1,5 @@
 library(shiny)
-
+library(tinytex)
 source("./drive.R")
 
 
@@ -21,12 +21,18 @@ ui <- fluidPage(
   verbatimTextOutput("fecha2")
 )
 
+exc_file <-"sondeo_de_opinion.xlsx"
+#rmd_file <- "sondeo_vif_opt.Rmd"
+rmd_file <- "prueba.Rmd"
+format_output <- "pdf"
+
+
 server <- function(input, output, session){
   output$report <- downloadHandler(
-    filename = "report.html", content = function(file){
+    filename = paste("report.",format_output, sep = ""), content = function(file){
       #id1 <- showNotification("Descargando archvio",duration = NULL,closeButton = FALSE,
        #                       action = drive_download(file = "sondeo_de_opinion.xlsx", path = "./data/sondeo_de_opinion.xlsx"))
-      withProgress(drive_download(file = "sondeo_de_opinion.xlsx", path = "./data/sondeo_de_opinion.xlsx"),
+      withProgress(drive_download(file = exc_file, path = paste("./data/",exc_file, sep = "")),
                    message = "Descargando archivo")
       #on.exit(removeNotification(id1), add = TRUE)
       id <- showNotification(
@@ -35,8 +41,8 @@ server <- function(input, output, session){
         closeButton = FALSE
       )
       on.exit(removeNotification(id), add = TRUE)
-      rmarkdown::render("sondeo_vif_opt.Rmd", output_file = file,
-                        #params = params,
+      rmarkdown::render(rmd_file, output_file = file,
+                        params = list(date_one = input$date1, date_two = input$date2),
                         envir = new.env(parent = globalenv())
       )
       fl <- "./data/sondeo_de_opinion.xlsx"
