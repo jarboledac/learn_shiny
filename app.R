@@ -1,10 +1,33 @@
 library(shiny)
 library(tinytex)
+library(shinymanager)
 source("./drive.R")
 
+# define some credentials
+credentials <- data.frame(
+  user = c("User", "Manager"), # mandatory
+  password = c("12345", "12345"), # mandatory
+  start = c("2019-04-15"), # optimal (all others)
+  expire = c(NA, NA),
+  admin = c(FALSE, TRUE),
+  comment = "Simple and secure authentification mechanism
+  for single ‘Shiny’ applications.",
+  stringsAsFactors = FALSE
+)
 
+
+set_labels(
+  language = "en",
+  "Please authenticate" = "Por favor autenticar",
+  "Username:" = "Usuario:",
+  "Password:" = "Contraseña:",
+  "Login" = "Iniciar sesión"
+)
+
+###########
 
 ui <- fluidPage(
+
   mainPanel(img(src = "logo2.png", width = 1300),height = 140, width = 400),
   titlePanel(h1("Informe semanal", align = "center")),
   fluidRow(column(4,br()),
@@ -26,8 +49,22 @@ exc_file <-"sondeo_de_opinion.xlsx"
 rmd_file <- "prueba.Rmd"
 format_output <- "pdf"
 
+ui <- secure_app(ui)
 
 server <- function(input, output, session){
+  # check_credentials returns a function to authenticate users
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+
+  output$auth_output <- renderPrint({
+    reactiveValuesToList(res_auth)
+  })
+
+
+
+
+  ##content
   output$report <- downloadHandler(
     filename = paste("report.",format_output, sep = ""), content = function(file){
       #id1 <- showNotification("Descargando archvio",duration = NULL,closeButton = FALSE,
