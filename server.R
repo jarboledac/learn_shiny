@@ -43,7 +43,7 @@ server <- function(input, output, session){
         file.remove(fl)
       }})
   output$fecha1 <- renderPrint(input$date1)
-  output$fecha2 <- renderPrint(input$date2)
+  #output$fecha2 <- renderPrint(input$date2)
 
 }
 
