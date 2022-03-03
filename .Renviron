@@ -1,0 +1,3 @@
+PATH_OTHERS= "./.others"
+PATH_JSON = "./.others/semanal-341319-33e631a3390c.json"
+PATH_USER =  "./.others/user.R"

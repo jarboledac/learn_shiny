@@ -20,7 +20,7 @@ library(tidyverse)
 
 source("/Users/jeferson/Documents/sisc/gestion_conocimiento/sondeo_VIF/funciones.R")
 
-data <- read_excel('/Users/jeferson/Documents/sisc/gestion_conocimiento/sondeo_vif/sondeo_de_opinion.xlsx') %>% clean_names() %>% 
+data <- read_excel('./data/sondeo_de_opinion.xlsx') %>% clean_names() %>% 
   select(-c('marca_temporal'))
 
 n_personas <- dim(data)[1]
