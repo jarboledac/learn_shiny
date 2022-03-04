@@ -5,5 +5,4 @@ source("./credentials.R")
 source("./server.R")
 
 
-
 shinyApp(ui, server)

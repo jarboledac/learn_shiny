@@ -10,6 +10,9 @@ exc_file <-"sondeo_de_opinion.xlsx"
 rmd_file <- "prueba.Rmd"
 format_output <- "pdf"
 
+Sys.setlocale(locale="es_ES.UTF-8")
+
+
 server <- function(input, output, session){
   #check_credentials returns a function to authenticate users
   res_auth <- secure_server(
@@ -42,7 +45,7 @@ server <- function(input, output, session){
       if(file.exists(fl)){
         file.remove(fl)
       }})
-  output$fecha1 <- renderPrint(input$date1)
+  output$fecha1 <- renderText(stringr::str_to_sentence(toString(format(input$date1,"%B %d de %Y"))))
   #output$fecha2 <- renderPrint(input$date2)
 
 }
