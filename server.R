@@ -38,7 +38,8 @@ server <- function(input, output, session){
       )
       on.exit(removeNotification(id), add = TRUE)
       rmarkdown::render(rmd_file, output_file = file,
-                        params = list(date_one = input$date1, date_two = input$date2),
+                        params = list(date_one = stringr::str_to_sentence(toString(format(input$date1,"%B %d de %Y"))),
+                                      date_two = input$date2),
                         envir = new.env(parent = globalenv())
       )
       fl <- "./data/sondeo_de_opinion.xlsx"

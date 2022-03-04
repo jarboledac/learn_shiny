@@ -1,7 +1,5 @@
 source(Sys.getenv("PATH_USER"))
 
-
-
 user <- users
 pwds <- pwd
 

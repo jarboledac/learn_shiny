@@ -1,7 +1,7 @@
 library(shinymanager)
 library(fresh)
 
-
+#Parametros logging
 
 set_labels(
   language = "en",
@@ -10,6 +10,8 @@ set_labels(
   "Password:" = "Contraseña:",
   "Login" = "Iniciar sesión"
 )
+
+
 
 ui <- fluidPage(tags$head(
   tags$style(HTML("   .form-control{
